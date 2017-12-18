@@ -711,17 +711,17 @@ public class RTSPBullet implements Runnable {
 		
 		if (decoder == null) {
 			System.out.println("Lets create a new decoder...");
-			
-			final RTSPBullet thisRef = RTSPBullet.this;
+			this.decoder = new SessionDescriptionProtocolDecoder();
+      /*
+			final RTSPBullet thisRef = this;
 			new Thread(new Runnable(){
 				//let client own this notifying thread. dont wait.
 				@Override
 				public void run() {
-					thisRef.createDecoder(thisRef);						
+					thisRef.createDecoder(thisRef);
+          System.out.println("decoder created.");
 				}}).start();
-			
-			
-			System.out.println("decoder created.");
+			*/
 		}
 
 		System.out.println("gonna do a check...");
