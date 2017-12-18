@@ -22,7 +22,7 @@
         <maven.build.timestamp.format>MM.dd.yyyy HH:mm</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
         <red5.version>1.0.8-M12</red5.version>
-        <red5pro.version>1.0.10</red5pro.version>
+        <red5pro.version>4.2.1.185-RELEASE</red5pro.version>
         <red5-websocket.version>1.6</red5-websocket.version>
         <mina.version>2.0.14</mina.version>
         <spring.version>4.3.2.RELEASE</spring.version>
