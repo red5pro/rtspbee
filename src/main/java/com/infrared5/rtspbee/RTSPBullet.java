@@ -93,7 +93,7 @@ public class RTSPBullet implements Runnable {
 
 
 	private String formUri() {
-		return "rtsp://" + host + "/" + contextPath + streamName;
+		return "rtsp://" + host + ":" + port + "/" + contextPath + "/" + streamName;
 	}
 
 	protected void setupVideo() throws IOException {
@@ -180,10 +180,15 @@ public class RTSPBullet implements Runnable {
 
 			out.flush();
 			try{
-			parseOptions();
-			}catch(Exception e){
+				System.out.println("parsing options...");
+				parseOptions();
+			}
+			catch(Exception e) {
 				 safeClose();
 				if(client!=null)
+					System.out.println("Parsing options error.");
+					System.out.println(e.getMessage());
+					e.printStackTrace();
 					dostreamError();
 				return;
 			}
@@ -192,17 +197,23 @@ public class RTSPBullet implements Runnable {
 			
 			out.flush();
 			try{
+				System.out.println("parsing description...");
 				parseDescription();
-
 				setupVideo();
-
 				setupAudio();
-			}catch(Exception e){
+			}
+			catch(Exception e){
+				System.out.println("parsing description error...");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 				safeClose();
 				if(client!=null)
 					dostreamError();
 				return;
 			}
+			
+			System.out.println("LETS PLAY...");
+			
 			out.write(("PLAY " + formUri() + " RTSP/1.0\r\nSession:" + session + "\r\nCSeq: " + nextSeq() + "\r\n"
 					+ "User-Agent: Lavf\r\n\r\n").getBytes());
 
@@ -211,6 +222,7 @@ public class RTSPBullet implements Runnable {
 			int k = 0;
 			String lines = "";
 			try{
+				System.out.println("reading socket input...");
 				while ((k = requestSocket.getInputStream().read()) != -1) {	
 					lines += String.valueOf((char) k);
 					if (lines.indexOf("\n") > -1) {	
@@ -223,7 +235,11 @@ public class RTSPBullet implements Runnable {
 						lines = "";	
 					}	
 				}
-			}catch(Exception e){
+			}
+			catch(Exception e) {
+				System.out.println("reading socket input error...");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 				safeClose();
 				if(client!=null)
 					dostreamError();
@@ -245,6 +261,7 @@ public class RTSPBullet implements Runnable {
 			mustEnd = true;
 			int lengthToRead = 0;// incoming packet length.
 			while (doRun && (k = requestSocket.getInputStream().read()) != -1) {
+				System.out.println("doRun run.");
 				//isPlaying=true;
 				if (k == 36) {
 
@@ -434,12 +451,18 @@ public class RTSPBullet implements Runnable {
 			unknownHost.printStackTrace();
 			client.unknownHostError(this);
 		} catch (ConnectException conXcept) {
+			System.out.println("--- connect error ---");
+			System.out.println(conXcept.getMessage());
 			conXcept.printStackTrace();
 			dostreamError();
 		} catch (IOException ioException) {
+			System.out.println("--- io error ---");
+			System.out.println(ioException.getMessage());
 			ioException.printStackTrace();
 			dostreamError();
 		} catch (Exception genException) {
+			System.out.println("--- general error ---");
+			System.out.println(genException.getMessage());
 			genException.printStackTrace();
 			dostreamError();
 		} finally {
@@ -593,7 +616,9 @@ public class RTSPBullet implements Runnable {
 		}
 		sdp = decoder.decode();
 		// We have the sdp description data.
+		System.out.println("--- sdp ---");
 		System.out.println(sdp.toString());
+		System.out.println("--- /sdp ---");
 		String propsets = "";
 		for (SDPTrack t : sdp.tracks) {
 			if (t.announcement.content.equals(SessionDescription.VIDEO)) {
@@ -622,20 +647,29 @@ public class RTSPBullet implements Runnable {
 		int idx = s.indexOf(":");
 		// end of header?
 
-		if (idx < 0) {
+		System.out.println("parseHeader: " + s);
+		System.out.println("--- headers ---");
+		System.out.println(headers);
+		System.out.println("--- /headers ---");
+		if (idx < 0 && headers.get("Content-Length") != null) {
 			bodyCounter = Integer.valueOf(headers.get("Content-Length"));
 			state = 2;
 			return;
 		}
-
+		else if (idx < 0) {
+			return;
+		}
 		hdr[0] = s.substring(0, idx);
 		hdr[1] = s.substring(idx + 1);
 		hdr[1] = hdr[1].replace("\r", "");
 		hdr[1] = hdr[1].replace("\n", "");
-		if (hdr[0].trim().equals("Session"))
+		if (hdr[0].trim().equals("Session")) {
 			this.session = hdr[1].trim();
+		}
 		headers.put(hdr[0].trim(), hdr[1].trim());
+		System.out.println("--- hdr ---");
 		System.out.println(hdr[0] + " = " + hdr[1]);
+		System.out.println("--- /hdr ---");
 	}
 
 	private int readNalHeader(byte bite) {
@@ -646,10 +680,12 @@ public class RTSPBullet implements Runnable {
 
 	private void parse(String s) {
 		if (state == 1) {// RTSP OK 200, get headers.
+			System.out.println("Parse Headers..." + s);
 			parseHeader(s);
 			return;
 		}
 		if (state == 2) {// DESCRIBE results.
+			System.out.println("Parse Describe.... " + s);
 			parseDescribeBody(s);
 			return;
 		}
@@ -664,19 +700,40 @@ public class RTSPBullet implements Runnable {
 			}
 		}
 	}
+	
+	public void createDecoder (RTSPBullet target) {
+		target.decoder = new SessionDescriptionProtocolDecoder();
+	}
 
 	private void parseDescribeBody(String s) {
 
-		if (decoder == null)
-			decoder = new SessionDescriptionProtocolDecoder();
+		System.out.println("parseDescriptionBody: " + s);
+		
+		if (decoder == null) {
+			System.out.println("Lets create a new decoder...");
+			
+			final RTSPBullet thisRef = RTSPBullet.this;
+			new Thread(new Runnable(){
+				//let client own this notifying thread. dont wait.
+				@Override
+				public void run() {
+					thisRef.createDecoder(thisRef);						
+				}}).start();
+			
+			
+			System.out.println("decoder created.");
+		}
 
+		System.out.println("gonna do a check...");
+		System.out.println("Index? " + s.indexOf("="));
 		int idx = s.indexOf("=");
-
+		System.out.println("= index: " + idx);
 		if (idx < 0) {// finished with body header?
 			state = 3;
 			return;
 		}
 
+		System.out.println("Decoder read.");
 		decoder.readLine(s);
 	}
 
@@ -979,47 +1036,5 @@ public class RTSPBullet implements Runnable {
         }
 
     }
-
-//	public static void main(String[] args) throws IOException {
-//
-//		RTSPBullet test = new RTSPBullet();
-//
-//		Thread thread = new Thread(test);
-//		thread.start();
-//
-//		long startTime = System.currentTimeMillis();
-//
-//		while (System.currentTimeMillis() - startTime < 30000) {
-//			MediaPacket p = test.packets.poll();
-//			if (p == null) {
-//				try {
-//					Thread.sleep(5);
-//				} catch (InterruptedException e) {
-//
-//					e.printStackTrace();
-//					break;
-//				}
-//			} else {
-//				if (p.frame instanceof VideoData) {
-//					VideoData vd = (VideoData) p.frame;
-//					System.out.println("                                     dispatch video " + vd.getTimestamp());
-//
-//				} else if (p.frame instanceof AudioData) {
-//					AudioData ad = (AudioData) p.frame;
-//					System.out.println("                                     dispatch audio " + ad.getTimestamp());
-//				}
-//
-//			}
-//		}
-//
-//		test.stop();
-//		try {
-//			thread.join(1000);
-//		} catch (InterruptedException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//
-//	}
 
 }

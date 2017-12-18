@@ -122,11 +122,11 @@ public class Red5Bee implements ClientHandler {
     }
     @Override
 	public void unknownHostError(RTSPBullet rtspCameraClient) {
-    	System.out.println("Failure for bullet to fire. Possible missing endpoint.");
+    	System.out.println("Failure for bullet to fire. Unknown host.");
     }
     @Override
 	public void streamError(RTSPBullet rtspCameraClient) {
-    	System.out.println("Failure for bullet to fire. Possible missing endpoint.");
+    	System.out.println("Failure for bullet to fire. Stream error.");
     }
 
     /**
