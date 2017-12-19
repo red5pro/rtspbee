@@ -56,7 +56,7 @@ public class TimeStream{
 		}
 		if(lastTime>newTime){
 			//roll over
-			System.out.println("roll over");
+//			System.out.println("roll over");
 
 			double max = 0xFFFFFFFFL ;
 			double oldS = lastTime;

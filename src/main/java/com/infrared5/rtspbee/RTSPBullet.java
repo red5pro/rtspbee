@@ -11,7 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -89,7 +91,12 @@ public class RTSPBullet implements Runnable {
   private TimeStream videoTimer=new TimeStream(TimeUnit.MILLISECONDS,90000);
   private TimeStream audiioTimer;
   //private boolean isPlaying=false;
-  private ClientHandler client;
+  
+  private IBulletCompleteHandler completeHandler;
+  private IBulletFailureHandler failHandler;
+  public AtomicBoolean completed = new AtomicBoolean(false);
+  volatile boolean connectionException;
+  private Future<?> future;
 
 
   private String formUri() {
@@ -152,12 +159,15 @@ public class RTSPBullet implements Runnable {
 
   private synchronized void safeClose(){
     try{
-      if(requestSocket!=null){
-        requestSocket.close();
-        requestSocket=null;
-      }
+    	stop();
+    	if(requestSocket!=null) {
+    		System.out.println("Bullet #" + this.order + ", closing socket...");
+    		requestSocket.close();
+    		requestSocket=null;
+    	}
     }catch(Exception e){
-
+    	System.out.println("Error in SAFE CLOSE");
+    	e.printStackTrace();
     }
   }
 
@@ -167,34 +177,33 @@ public class RTSPBullet implements Runnable {
     boolean mustEnd =false;
     try {
 
-      System.out.println("Attempting connect to " + host + " in port " + String.valueOf(port));
+      System.out.println("Bullet #" + this.order + ", Attempting connect to " + host + " in port " + String.valueOf(port));
 
       requestSocket = new Socket(host, port);
 
-      System.out.println("Connected to " + host + " in port " + String.valueOf(port));
+      System.out.println("Bullet #" + this.order + ", Connected to " + host + " in port " + String.valueOf(port));
 
       out = requestSocket.getOutputStream();
       out.write(("OPTIONS " + formUri() + " RTSP/1.0\r\n" + "CSeq: " + nextSeq() + "\r\n"
           + "User-Agent: Red5Pro\r\n\r\n").getBytes());
       out.flush();
       try{
-        System.out.println("parsing options...");
+//        System.out.println("parsing options...");
         parseOptions();
       }
       catch(Exception e) {
          safeClose();
-        if(client!=null)
-          System.out.println("Parsing options error.");
-          System.out.println(e.getMessage());
-          e.printStackTrace();
-          dostreamError();
-        return;
+         System.out.println("Parsing options error.");
+         System.out.println(e.getMessage());
+         e.printStackTrace();
+         dostreamError();
+         return;
       }
       out.write(("DESCRIBE " + formUri() + " RTSP/1.0\r\n" + "CSeq: " + nextSeq() + "\r\n"
           + "User-Agent: Red5Pro\r\n" + "Accept: application/sdp\r\n" + "\r\n").getBytes());
       out.flush();
       try{
-        System.out.println("parsing description...");
+//        System.out.println("parsing description...");
         parseDescription();
         setupAudio();
         setupVideo();
@@ -204,30 +213,27 @@ public class RTSPBullet implements Runnable {
         System.out.println(e.getMessage());
         e.printStackTrace();
         safeClose();
-        if(client!=null)
-          dostreamError();
+        dostreamError();
         return;
       }
 
-      System.out.println("LETS PLAY...");
-      System.out.println("GOOOOOO");
+//      System.out.println("LETS PLAY...");
       out.write(("PLAY " + formUri() + " RTSP/1.0\r\nCSeq:" + nextSeq() + "\r\n"
           + "User-Agent:Lavf\r\n\r\n").getBytes());
-      System.out.println("PLAY WRITE");
       out.flush();
 
-      System.out.println("PLAY SENT");
       int k = 0;
       String lines = "";
       try{
-        System.out.println("reading socket input...");
+//        System.out.println("reading socket input...");
+        
         while ((k = requestSocket.getInputStream().read()) != -1) {
           lines += String.valueOf((char) k);
           if (lines.indexOf("\n") > -1) {
             lines = lines.trim();
             //System.out.println(lines);
             if (lines.length() == 0) {
-              System.out.println("End of header, begin stream.");
+//              System.out.println("End of header, begin stream.");
               break;
             }
             lines = "";
@@ -239,23 +245,21 @@ public class RTSPBullet implements Runnable {
         System.out.println(e.getMessage());
         e.printStackTrace();
         safeClose();
-        if(client!=null)
-          dostreamError();
-
+        dostreamError();
         return;
       }
-
-      if(client!=null){
-        final ClientHandler clientRef= client;
-        final RTSPBullet thisRef = RTSPBullet.this;
-        new Thread(new Runnable(){
-          //let client own this notifying thread. dont wait.
-          @Override
+      
+      Red5Bee.submit(new Runnable() {
           public void run() {
-            clientRef.playbackBegin(thisRef);
-          }}).start();
+              System.out.printf("Successful subscription of bullet, disposing: bullet #%d\n", order);
+              if (completed.compareAndSet(false, true)) {
+              	if (completeHandler != null) {
+              		completeHandler.OnBulletComplete();
+                }
+              }
+          }
+      }, timeout, TimeUnit.SECONDS);
 
-      }
       mustEnd = true;
       int lengthToRead = 0;// incoming packet length.
       while (doRun && (k = requestSocket.getInputStream().read()) != -1) {
@@ -440,48 +444,54 @@ public class RTSPBullet implements Runnable {
         }
       }
 
+      System.out.println("--- teardown ---");
+      
       out.write(("TEARDOWN " + formUri() + " RTSP/1.0\r\n" + "CSeq: " + nextSeq() + "\r\n"
           + "User-Agent: Red5-Pro\r\n" + "Session: " + session + " \r\n\r\n").getBytes());
 
       out.flush();
       out.close();
+      
+      System.out.println("---/ teardown ---");
+      
     } catch (UnknownHostException unknownHost) {
       unknownHost.printStackTrace();
-      client.unknownHostError(this);
+      dostreamError();
     } catch (ConnectException conXcept) {
       System.out.println("--- connect error ---");
       System.out.println(conXcept.getMessage());
       conXcept.printStackTrace();
       dostreamError();
+      System.out.println("---/ connect error ---");
     } catch (IOException ioException) {
       System.out.println("--- io error ---");
       System.out.println(ioException.getMessage());
       ioException.printStackTrace();
+      System.out.println("---/ io error ---");
       dostreamError();
     } catch (Exception genException) {
       System.out.println("--- general error ---");
       System.out.println(genException.getMessage());
       genException.printStackTrace();
+      System.out.println("---/ general error ---");
       dostreamError();
     } finally {
       safeClose();
-      if(mustEnd && client!=null)
-        client.playbackEnd(this);
     }
   }
-  private void dostreamError(){
-    if(client!=null){
-      final ClientHandler clientRef= client;
-      final RTSPBullet thisRef = RTSPBullet.this;
-      new Thread(new Runnable(){
-
-        @Override
-        public void run() {
-          clientRef.streamError(thisRef);
-        }}).start();
-
-    }
+  private void dostreamError() {
+	  
+	  final IBulletFailureHandler thisFail = this.failHandler;
+	  System.out.println("Bullet #" + this.order + ", stream error.");
+	  new Thread(new Runnable(){
+	
+	    @Override
+	    public void run() {
+	      thisFail.OnBulletFireFail();
+	    }}).start();
+    
   }
+
   private void sendAVCDecoderConfig(int timecode) {
 
     if (part2 == null) {
@@ -614,9 +624,9 @@ public class RTSPBullet implements Runnable {
     }
     sdp = decoder.decode();
     // We have the sdp description data.
-    System.out.println("--- sdp ---");
-    System.out.println(sdp.toString());
-    System.out.println("--- /sdp ---");
+//    System.out.println("--- sdp ---");
+//    System.out.println(sdp.toString());
+//    System.out.println("--- /sdp ---");
     String propsets = "";
     for (SDPTrack t : sdp.tracks) {
       if (t.announcement.content.equals(SessionDescription.VIDEO)) {
@@ -645,10 +655,10 @@ public class RTSPBullet implements Runnable {
     int idx = s.indexOf(":");
     // end of header?
 
-    System.out.println("parseHeader: " + s);
-    System.out.println("--- headers ---");
-    System.out.println(headers);
-    System.out.println("--- /headers ---");
+//    System.out.println("parseHeader: " + s);
+//    System.out.println("--- headers ---");
+//    System.out.println(headers);
+//    System.out.println("--- /headers ---");
     if (idx < 0 && headers.get("Content-Length") != null) {
       bodyCounter = Integer.valueOf(headers.get("Content-Length"));
       state = 2;
@@ -665,12 +675,12 @@ public class RTSPBullet implements Runnable {
       this.session = hdr[1].trim();
     }
     headers.put(hdr[0].trim(), hdr[1].trim());
-    System.out.println("--- hdr ---");
-    System.out.println(hdr[0] + " = " + hdr[1]);
-    System.out.println("--- /hdr ---");
-    System.out.println("--- session ---");
-    System.out.println(this.session);
-    System.out.println("--- /session ---");
+//    System.out.println("--- hdr ---");
+//    System.out.println(hdr[0] + " = " + hdr[1]);
+//    System.out.println("--- /hdr ---");
+//    System.out.println("--- session ---");
+//    System.out.println(this.session);
+//    System.out.println("--- /session ---");
   }
 
   private int readNalHeader(byte bite) {
@@ -681,12 +691,12 @@ public class RTSPBullet implements Runnable {
 
   private void parse(String s) {
     if (state == 1) {// RTSP OK 200, get headers.
-      System.out.println("Parse Headers..." + s);
+//      System.out.println("Parse Headers..." + s);
       parseHeader(s);
       return;
     }
     if (state == 2) {// DESCRIBE results.
-      System.out.println("Parse Describe.... " + s);
+//      System.out.println("Parse Describe.... " + s);
       parseDescribeBody(s);
       return;
     }
@@ -708,33 +718,23 @@ public class RTSPBullet implements Runnable {
 
   private void parseDescribeBody(String s) {
 
-    System.out.println("parseDescriptionBody: " + s);
+//    System.out.println("parseDescriptionBody: " + s);
 
     if (decoder == null) {
-      System.out.println("Lets create a new decoder...");
+//      System.out.println("Lets create a new decoder...");
       this.decoder = new SessionDescriptionProtocolDecoder();
-      /*
-      final RTSPBullet thisRef = this;
-      new Thread(new Runnable(){
-        //let client own this notifying thread. dont wait.
-        @Override
-        public void run() {
-          thisRef.createDecoder(thisRef);
-          System.out.println("decoder created.");
-        }}).start();
-      */
     }
 
-    System.out.println("gonna do a check...");
-    System.out.println("Index? " + s.indexOf("="));
+//    System.out.println("gonna do a check...");
+//    System.out.println("Index? " + s.indexOf("="));
     int idx = s.indexOf("=");
-    System.out.println("= index: " + idx);
+//    System.out.println("= index: " + idx);
     if (idx < 0) {// finished with body header?
       state = 3;
       return;
     }
 
-    System.out.println("Decoder read.");
+//    System.out.println("Decoder read.");
     decoder.readLine(s);
   }
 
@@ -788,7 +788,7 @@ public class RTSPBullet implements Runnable {
                 audioDataSize - packetBufferOffset);
           }
           catch (Exception e) {
-            System.out.println("Couldnt parse AAC");
+//            System.out.println("Couldnt parse AAC");
           }
 
           dispatchAudio(sendConfig, packetBuffer, 0, audioDataSize, (long) time);
@@ -810,7 +810,7 @@ public class RTSPBullet implements Runnable {
           System.arraycopy(packet.payload, 4, packetBuffer, 0, packet.payload.length - 4);
         }
         catch (Exception e) {
-          System.out.println("Couldnt parse AAC");
+//          System.out.println("Couldnt parse AAC");
         }
 
       } else if (packet.payload.length == audioDataSize + headerBytesLength
@@ -834,7 +834,7 @@ public class RTSPBullet implements Runnable {
           System.arraycopy(packet.payload, audioDataSize + 4, packetBuffer, 0, packetBuffer.length);
         }
         catch (Exception e) {
-                System.out.println("Couldnt parse AAC");
+//        	System.out.println("Couldnt parse AAC");
         }
       }
     }
@@ -999,51 +999,52 @@ public class RTSPBullet implements Runnable {
   public ConcurrentLinkedQueue<MediaPacket> getPackets() {
     return packets;
   }
-
-  public ClientHandler getClient() {
-    return client;
+  
+  public void setCompleteHandler(IBulletCompleteHandler completeHandler) {
+      this.completeHandler = completeHandler;
   }
 
-  public void setClient(ClientHandler client) {
-    this.client = client;
+  public void setFailHandler(IBulletFailureHandler failHandler) {
+      this.failHandler = failHandler;
   }
 
-    /**
-     * Constructs a bullet which represents an RTMPClient.
-     *
-     * @param url
-     * @param port
-     * @param application
-     * @param streamName
-     */
-    private RTSPBullet(int order, String url, int port, String application, String streamName) {
-        this.order = order;
-        this.host = url;
-        this.port = port;
-        this.contextPath = application;
-        this.streamName = streamName;
-        this.description = toString();
-    }
 
-    /**
-     * Constructs a bullet which represents an RTMPClient.
-     *
-     * @param url
-     * @param port
-     * @param application
-     * @param streamName
-     * @param timeout
-     */
-    private RTSPBullet(int order, String url, int port, String application, String streamName, int timeout) {
-        this(order, url, port, application, streamName);
-        this.timeout = timeout;
-    }
+	/**
+	 * Constructs a bullet which represents an RTMPClient.
+	 *
+	 * @param url
+	 * @param port
+	 * @param application
+	 * @param streamName
+	 */
+	private RTSPBullet(int order, String url, int port, String application, String streamName) {
+	    this.order = order;
+	    this.host = url;
+	    this.port = port;
+	    this.contextPath = application;
+	    this.streamName = streamName;
+	    this.description = toString();
+	}
+	
+	/**
+	 * Constructs a bullet which represents an RTMPClient.
+	 *
+	 * @param url
+	 * @param port
+	 * @param application
+	 * @param streamName
+	 * @param timeout
+	 */
+	private RTSPBullet(int order, String url, int port, String application, String streamName, int timeout) {
+	    this(order, url, port, application, streamName);
+	    this.timeout = timeout;
+	}
+	
+	public String toString() {
+	    return StringUtils.join(new String[] { "(bullet #" + this.order + ")", "URL: " + this.host, "PORT: " + this.port, "APP: " + this.contextPath, "NAME: " + this.streamName }, "\n");
+	}
 
-    public String toString() {
-        return StringUtils.join(new String[] { "(bullet #" + this.order + ")", "URL: " + this.host, "PORT: " + this.port, "APP: " + this.contextPath, "NAME: " + this.streamName }, "\n");
-    }
-
-  static final class Builder {
+	static final class Builder {
 
         static RTSPBullet build(int order, String url, int port, String application, String streamName) {
             return new RTSPBullet(order, url, port, application, streamName);

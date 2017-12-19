@@ -10,7 +10,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class Red5Bee implements ClientHandler {
+public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
 
     // instance a scheduled executor, using a core size based on cpus
     private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors() * 8);
@@ -100,33 +100,27 @@ public class Red5Bee implements ClientHandler {
         // load our bullets into the gun
         for (int i = 0; i < numBullets; i++) {
             // build a bullet
-        	RTSPBullet bullet = RTSPBullet.Builder.build((i + 1), url, port, application, streamName, timeout);
-        	bullet.setClient(this);
+            RTSPBullet bullet = RTSPBullet.Builder.build((i + 1), url, port, application, streamName, timeout);
+            bullet.setCompleteHandler(this);
+            bullet.setFailHandler(this);
             machineGun.put(i, bullet);
         }
     }
     
     @Override
-	public void playbackBegin(RTSPBullet rtspCameraClient) {
-    	
+    public void OnBulletComplete() {
+        int remaining = bulletsRemaining.decrementAndGet();
+        if (remaining <= 0) {
+            System.out.println("All bullets expended. Bye Bye.");
+            System.exit(1);
+        }
+        System.out.println("Bullet has completed journey. Remaining Count: " + bulletsRemaining);
+        System.out.printf("Active thread count: %d bullets remaining: %d\n", Thread.activeCount(), bulletsRemaining.get());
     }
+
     @Override
-	public void playbackEnd(RTSPBullet rtspCameraClient) {
-    	int remaining = bulletsRemaining.decrementAndGet();
-      	if (remaining <= 0) {
-          	System.out.println("All bullets expended. Bye Bye.");
-          	System.exit(1);
-      	}
-      	System.out.println("Bullet has completed journey. Remaining Count: " + bulletsRemaining);
-      	System.out.printf("Active thread count: %d bullets remaining: %d\n", Thread.activeCount(), bulletsRemaining.get());    	
-    }
-    @Override
-	public void unknownHostError(RTSPBullet rtspCameraClient) {
-    	System.out.println("Failure for bullet to fire. Unknown host.");
-    }
-    @Override
-	public void streamError(RTSPBullet rtspCameraClient) {
-    	System.out.println("Failure for bullet to fire. Stream error.");
+    public void OnBulletFireFail() {
+        System.out.println("Failure for bullet to fire.");
     }
 
     /**
