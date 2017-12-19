@@ -98,14 +98,9 @@ public class RTSPBullet implements Runnable {
 
   protected void setupVideo() throws IOException {
 
-//    out.write(("SETUP " + formUri() + "/trackID=video RTSP/1.0\r\n" + "CSeq: " + nextSeq() + "\r\n"
-//        + "User-Agent: Red5Pro\r\n" + "Blocksize : 4096\r\n"
-//        + "Transport: RTP/AVP/TCP;interleaved=0-1\r\n\r\n").getBytes());
     out.write(("SETUP " + formUri() + "/video RTSP/1.0\r\n" + "CSeq: " + nextSeq() + "\r\n"
         + "User-Agent: Red5Pro\r\n" + "Blocksize : 4096\r\n"
         + "Transport: RTP/AVP/TCP;interleaved=2-3\r\n\r\n").getBytes());
-//    out.write(("SETUP " + formUri() + " RTSP/1.0\r\n"
-//        + "Transport: RTP/AVP/TCP;interleaved=2-3\r\n\r\n").getBytes());
     out.flush();
 
     int k = 0;
@@ -130,11 +125,8 @@ public class RTSPBullet implements Runnable {
   }
 
   protected void setupAudio() throws IOException {
-//    out.write(("SETUP " + formUri() + "/trackID=audio RTSP/1.0\r\nSession:" + session + "\r\nCSeq: " + nextSeq()
-//        + "\r\n" + "User-Agent: Red5Pro\r\n" + "Transport: RTP/AVP/TCP;interleaved=2-3\r\n\r\n").getBytes());
     out.write(("SETUP " + formUri() + "/audio RTSP/1.0\r\nCSeq: " + nextSeq()
         + "\r\n" + "User-Agent: Red5Pro\r\n" + "Transport: RTP/AVP/TCP;interleaved=0-1\r\n\r\n").getBytes());
-//    out.write(("SETUP " + formUri() + "\r\n" + "Transport: RTP/AVP/TCP;interleaved=0-1\r\n\r\n").getBytes());
 
     out.flush();
     int k = 0;
@@ -184,7 +176,6 @@ public class RTSPBullet implements Runnable {
       out = requestSocket.getOutputStream();
       out.write(("OPTIONS " + formUri() + " RTSP/1.0\r\n" + "CSeq: " + nextSeq() + "\r\n"
           + "User-Agent: Red5Pro\r\n\r\n").getBytes());
-//      out.write(("OPTIONS " + formUri() + " RTSP/1.0\r\n\r\n").getBytes());
       out.flush();
       try{
         System.out.println("parsing options...");
@@ -201,7 +192,6 @@ public class RTSPBullet implements Runnable {
       }
       out.write(("DESCRIBE " + formUri() + " RTSP/1.0\r\n" + "CSeq: " + nextSeq() + "\r\n"
           + "User-Agent: Red5Pro\r\n" + "Accept: application/sdp\r\n" + "\r\n").getBytes());
-//      out.write(("DESCRIBE " + formUri() + " RTSP/1.0\r\n\r\n").getBytes());
       out.flush();
       try{
         System.out.println("parsing description...");
@@ -221,11 +211,8 @@ public class RTSPBullet implements Runnable {
       
       System.out.println("LETS PLAY...");
       System.out.println("GOOOOOO");
-//      out.write(("PLAY " + formUri() + " RTSP/1.0\r\nSession:" + session + "\r\nCSeq:" + nextSeq() + "\r\n"
-//          + "User-Agent:Lavf\r\n\r\n").getBytes());
       out.write(("PLAY " + formUri() + " RTSP/1.0\r\nCSeq:" + nextSeq() + "\r\n"
           + "User-Agent:Lavf\r\n\r\n").getBytes());
-//      out.write(("PLAY " + formUri() + " RTSP/1.0\r\n\r\n").getBytes());
       System.out.println("PLAY WRITE");
       out.flush();
 
