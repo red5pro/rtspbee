@@ -14,5 +14,5 @@ $ mvn clean compile assembly:single
 
 ```sh
 $ cd target
-$ java -jar rtspbee-1.0.0-jar-with-dependencies.jar 50.56.81.179 8554 live mystream 1 5
+$ java -jar -noverify rtspbee-1.0.0-jar-with-dependencies.jar 50.56.81.179 8554 live mystream 1 5
 ```
