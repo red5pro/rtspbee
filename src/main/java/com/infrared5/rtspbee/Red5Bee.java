@@ -1,5 +1,10 @@
 package com.infrared5.rtspbee;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -9,6 +14,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.google.gson.Gson;
 
 public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
 
@@ -30,6 +37,9 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
     private AtomicInteger bulletsRemaining = new AtomicInteger();
 
     Map<Integer, RTSPBullet> machineGun = new HashMap<Integer, RTSPBullet>();
+    
+    private String streamManagerURL;
+    private boolean isStreamManagerAttack;
 
     /**
      * Original Bee - provide all parts of stream endpoint for attack.
@@ -48,6 +58,26 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
         this.streamName = streamName;
         this.numBullets = numBullets;
         this.timeout = timeout;
+        this.isStreamManagerAttack = false;
+        this.streamManagerURL = null;
+    }
+    
+    /**
+     * Stream Manager Bee - provide Stream Manager endpoint for GET or stream uri.
+     * 
+     * @param streamManagerURL
+     * @param numBullets
+     * @param port
+     * @param timeout
+     */
+    public Red5Bee(String streamManagerURL, int numBullets, int port, int timeout) throws Exception {
+    	this.isStreamManagerAttack = true;
+        this.streamManagerURL = streamManagerURL;
+        this.numBullets = numBullets;
+        this.port = port;
+        this.timeout = timeout;
+        modifyEndpointProperties(this.streamManagerURL);
+
     }
 
     /**
@@ -70,6 +100,28 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
      */
     public static ScheduledFuture<?> submit(Runnable runnable, long delay, TimeUnit unit) {
         return executor.schedule(runnable, delay, unit);
+    }
+    
+    /**
+     * Updates property state based on data received from Stream Manager Endpoint request.
+     * 
+     * @param smURL
+     * @throws Exception
+     */
+    public void modifyEndpointProperties(String smURL) throws Exception {
+        
+        System.out.printf("Access Streaming Endpoint from Stream Manager URL: %s.\n", streamManagerURL);
+        String endpoint = accessStreamEndpoint(smURL).toString().trim();
+        System.out.printf("Received Streaming Endpoint: %s.\n", endpoint);
+        
+        SubscriberEndpoint json = new Gson().fromJson(endpoint, SubscriberEndpoint.class);
+        this.url = json.getServerAddress();
+        this.port = this.port == 0 ? 8554 : this.port;
+        this.streamName = json.getName();
+        this.application = json.getScope().substring(1, json.getScope().length());
+        
+        System.out.printf("url: " + this.url + ", port: " + this.port + ", context: " + this.application + ", name " + this.streamName + ".\n");
+        
     }
 
     /**
@@ -122,6 +174,47 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
     public void OnBulletFireFail() {
         System.out.println("Failure for bullet to fire.");
     }
+    
+    /**
+     * Attempts to access stream endpoint uri from Stream Manager URL.
+     * 
+     * @param desiredUrl
+     * @return
+     * @throws Exception
+     */
+    private String accessStreamEndpoint(String desiredUrl) throws Exception {
+        URL url = null;
+        BufferedReader reader = null;
+        StringBuilder stringBuilder;
+
+        try {
+            url = new URL(desiredUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setReadTimeout(15 * 1000);
+            connection.connect();
+
+            // read the output from the server
+            reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            stringBuilder = new StringBuilder();
+            String line = null;
+            while ((line = reader.readLine()) != null) {
+                stringBuilder.append(line + "\n");
+            }
+            return stringBuilder.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException ioe) {
+                    ioe.printStackTrace();
+                }
+            }
+        }
+    }
 
     /**
      * Entry point.
@@ -141,7 +234,33 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
 
         Red5Bee bee;
 
-        if (args.length < 5) {
+        // 3 option for client specific attack.
+        if (args.length < 2) {
+        	
+            System.out.printf("Incorrect number of args, please pass in the following: \n " + "\narg[0] = Stream Manager Endpoint to access Stream Subscription URL" + "\narg[1] = numBullets");
+            return;
+            
+        } 
+        else if (args.length >= 3 && args.length <= 4) {
+        	
+            System.out.printf("Determined its a stream manager attack...");
+            url = args[0].toString().trim();
+            port = Integer.parseInt(args[1]);
+            numBullets = Integer.parseInt(args[2]);
+            if (args.length > 3) {
+                timeout = Integer.parseInt(args[3]);
+            }
+            try {
+                bee = new Red5Bee(url, numBullets, port, timeout);
+                bee.attack();
+            } catch (Exception e) {
+                System.out.printf("Could not properly parse provided endpoint from Stream Manager: %s.\n", args[0]);
+                e.printStackTrace();
+            }
+        	
+        }
+    	// 5 option arguments for origin attack.
+        else if (args.length < 5) {
         	
             System.out.printf("Incorrect number of args, please pass in the following: \n  " + "\narg[0] = IP Address" + "\narg[1] = port" + "\narg[2] = app" + "\narg[3] = streamName" + "\narg[4] = numBullets");
             return;

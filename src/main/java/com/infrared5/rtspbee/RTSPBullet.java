@@ -455,8 +455,11 @@ public class RTSPBullet implements Runnable {
       System.out.println("---/ teardown ---");
       
     } catch (UnknownHostException unknownHost) {
+      System.out.println("--- host error ---");
+      System.out.println(unknownHost.getMessage());
       unknownHost.printStackTrace();
       dostreamError();
+      System.out.println("---/ host error ---");
     } catch (ConnectException conXcept) {
       System.out.println("--- connect error ---");
       System.out.println(conXcept.getMessage());
@@ -476,6 +479,7 @@ public class RTSPBullet implements Runnable {
       System.out.println("---/ general error ---");
       dostreamError();
     } finally {
+    	System.out.println("--- /finally ---");
       safeClose();
     }
   }
