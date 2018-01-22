@@ -202,6 +202,8 @@ public class RTSPBullet implements Runnable {
       out.write(("DESCRIBE " + formUri() + " RTSP/1.0\r\n" + "CSeq: " + nextSeq() + "\r\n"
           + "User-Agent: Red5Pro\r\n" + "Accept: application/sdp\r\n" + "\r\n").getBytes());
       out.flush();
+      
+      System.out.println("Bullet #" + this.order + ", Parsing Description.");
       try{
 //        System.out.println("parsing description...");
         parseDescription();
@@ -218,6 +220,7 @@ public class RTSPBullet implements Runnable {
       }
 
 //      System.out.println("LETS PLAY...");
+      System.out.println("Bullet #" + this.order + ", Start Playback.");
       out.write(("PLAY " + formUri() + " RTSP/1.0\r\nCSeq:" + nextSeq() + "\r\n"
           + "User-Agent:Lavf\r\n\r\n").getBytes());
       out.flush();
@@ -455,8 +458,11 @@ public class RTSPBullet implements Runnable {
       System.out.println("---/ teardown ---");
       
     } catch (UnknownHostException unknownHost) {
+      System.out.println("--- host error ---");
+      System.out.println(unknownHost.getMessage());
       unknownHost.printStackTrace();
       dostreamError();
+      System.out.println("---/ host error ---");
     } catch (ConnectException conXcept) {
       System.out.println("--- connect error ---");
       System.out.println(conXcept.getMessage());
@@ -476,6 +482,7 @@ public class RTSPBullet implements Runnable {
       System.out.println("---/ general error ---");
       dostreamError();
     } finally {
+    	System.out.println("--- /finally ---");
       safeClose();
     }
   }
