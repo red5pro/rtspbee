@@ -9,7 +9,6 @@
     <url>https://github.com/infrared5/rtspbee</url>
     <description>RTSPBee</description>
     <properties>
-        <finalName>rtspbee-${project.version}</finalName>
         <iharder-base64.version>2.3.9</iharder-base64.version>
         <mp3agic.version>0.8.5</mp3agic.version>
         <jetm.version>1.2.3</jetm.version>
@@ -35,6 +34,7 @@
         <play.version>2.3.1</play.version>
     </properties>
     <build>
+    	<finalName>${project.name}-${project.version}</finalName>
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -71,6 +71,7 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
+                    <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
             </plugin>
             <plugin>
