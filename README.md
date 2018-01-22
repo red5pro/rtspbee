@@ -1,37 +1,91 @@
-# rtspbee
-RTSPBee for load testing.
+# RTSP Bee
+The RTSP Bee is a java program that runs a subscription "attack" on a server. One *RTSP Bee* can have N *Bullets* (or stingers) that are fired concurrently.
 
-# Build
+* [Requirements](#requirements)
+* [Building](#building)
+* [Attacking](#attacking)
+* [Notes](#notes)
+
+# Requirements
+
+* Built using **Java 8 JDK**
+
+# Building
+
+## Maven
+
+Creates an executable jar with all the needed dependencies (~26Mb)
 
 ```sh
 $ mvn clean compile assembly:single
 ```
 
-# Run
+# Attacking
 
-1. Start a stream on `yourserverURL` with stream name: `mystream`:
-2. Issue the following, after building:
+* [Basic Subscription](#basic-subscription)
+* [Stream Manager Subscription](#stream-manager-subscription)
 
-```sh
-$ cd target
-$ java -jar -noverify rtspbee-1.0.0-jar-with-dependencies.jar yourserverURL 8554 live mystream 1 10
-```
-
-The above will run a single bee sting lasting 10 seconds.
-
-# Run with Stream Manager support
-
-> Note: The easiest way to start a publisher using the Stream Manager API is to use the *Publish - Stream Manager Proxy* test from the _webrtcexamples_ available in the Red5 Pro Server distribution.
-
-1. Start a stream through the Stream Manager at `yourstreammanagerURL` with stream name `mystream`:
-2. Issue the following, after building:
+## Basic Subscription
 
 ```sh
-$ cd target
-$ java -jar -noverify rtspbee-1.0.0-jar-with-dependencies.jar "http://yourstreammanagerURL:5080/streammanager/api/2.0/event/live/todd?action=subscribe" 8554 1 10
+$ java -jar rtmpbee.jar [red5pro-server-IP] [port] [app-name] [stream-name] [count] [timeout]
 ```
 
-The above will run a single bee sting lasting 10 seconds.
+### Options
+
+#### red5pro-server-IP
+The IP of the Red5 Pro Server that you want the bee to subscribe to attack.
+
+#### port
+The port on the Red5 Pro Server that you want the bee to subscribe to attack.
+
+#### app-name
+The application name that provides the streaming capabilities.
+
+#### stream-name
+The name of the stream you want the bee to subscribe to attack.
+
+#### count
+The amount of bullets (stingers, a.k.a. stream connections) for the bee to have in the attack.
+
+#### timeout
+The amount of time to subscribe to stream. _The actual subscription time may differ from this amount. This is really the time lapse of start of subscription until end._
+
+#### Example
+
+```ssh
+java -jar -noverify rtspbee.jar xxx.xxx.xxx.xxx 1935 live mystream 100 60
+```
+
+This will run an attack with `100` stingers (a.k.a, subscription streams) for `60` seconds each, consuming the `mystream` stream at `rtmp://xxx.xxx.xxx.xxx/1935`.
+
+## Stream Manager Subscription
+
+```sh
+$ java -jar rtspbee.jar [stream-manager-API-request] [port] [count] [timeout]
+```
+
+### Options
+
+#### stream-manager-API-request
+The API request endpoint that will return Edge server information.
+
+#### port
+The port on the Red5 Pro Edge Server that you want the bee to subscribe to attack.
+
+#### count
+The amount of bullets (stingers, a.k.a. stream connections) for the bee to have in the attack
+
+#### timeout
+The amount of time to subscribe to stream. _The actual subscription time may differ from this amount. This is really the time lapse of start of subscription until end._
+
+#### Example
+
+```ssh
+$ java -jar -noverify rtspbee.jar "http://xxx.xxx.xxx.xxx:5080/streammanager/api/2.0/event/live/mystream?action=subscribe" 1935 100 60
+```
+
+This will run an attack with `100` stingers (a.k.a, subscription streams) for `60` seconds each, consuming the `mystream` stream at the Edge server address returned from the Stream Manager API call to `http://xxx.xxx.xxx.xxx:5080/streammanager/api/2.0/event/live/mystream?action=subscribe`.
 
 # Notes
 
