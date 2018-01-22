@@ -1,14 +1,15 @@
 # RTSP Bee
 The RTSP Bee is a java program that runs a subscription "attack" on a server. One *RTSP Bee* can have N *Bullets* (or stingers) that are fired concurrently.
 
-* [Requirements](#requirements)
+* [Requirements](#build-requirements)
 * [Building](#building)
 * [Attacking](#attacking)
 * [Notes](#notes)
 
-# Requirements
+# Build Requirements
 
-* Built using **Java 8 JDK**
+* Maven 3+
+* Java 8 JDK
 
 # Building
 
@@ -21,6 +22,8 @@ $ mvn clean compile assembly:single
 ```
 
 # Attacking
+
+> You will need to have Java 8 installed to run the RTSP Bee.
 
 * [Basic Subscription](#basic-subscription)
 * [Stream Manager Subscription](#stream-manager-subscription)
