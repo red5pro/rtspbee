@@ -39,7 +39,6 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
     Map<Integer, RTSPBullet> machineGun = new HashMap<Integer, RTSPBullet>();
     
     private String streamManagerURL;
-    private boolean isStreamManagerAttack;
 
     /**
      * Original Bee - provide all parts of stream endpoint for attack.
@@ -58,7 +57,6 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
         this.streamName = streamName;
         this.numBullets = numBullets;
         this.timeout = timeout;
-        this.isStreamManagerAttack = false;
         this.streamManagerURL = null;
     }
     
@@ -71,7 +69,6 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
      * @param timeout
      */
     public Red5Bee(String streamManagerURL, int numBullets, int port, int timeout) throws Exception {
-    	this.isStreamManagerAttack = true;
         this.streamManagerURL = streamManagerURL;
         this.numBullets = numBullets;
         this.port = port;
@@ -173,6 +170,20 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
     @Override
     public void OnBulletFireFail() {
         System.out.println("Failure for bullet to fire.");
+        if (this.streamManagerURL != null) {
+            try {
+                modifyEndpointProperties(this.streamManagerURL);
+                // build a bullet
+                RTSPBullet bullet = RTSPBullet.Builder.build(++numBullets, url, port, application, streamName, timeout);
+                bullet.setCompleteHandler(this);
+                bullet.setFailHandler(this);
+                // submit for execution
+                submit(bullet);
+            } catch (Exception e) {
+                System.out.printf("Could not refire bullet with Stream Manager Endpoint URL: %s\n.", this.streamManagerURL);
+                e.printStackTrace();
+            }
+        }
     }
     
     /**
