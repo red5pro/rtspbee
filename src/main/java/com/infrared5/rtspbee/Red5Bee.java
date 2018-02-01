@@ -184,6 +184,13 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
                 e.printStackTrace();
             }
         }
+        else {
+        	int remaining = bulletsRemaining.decrementAndGet();
+        	if (remaining <= 0) {
+        		System.out.println("All bullets expended. Bye Bye.");
+        		System.exit(1);
+        	}
+        }
     }
     
     /**
