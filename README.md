@@ -31,7 +31,7 @@ $ mvn clean compile assembly:single
 ## Basic Subscription
 
 ```sh
-$ java -jar rtmpbee.jar [red5pro-server-IP] [port] [app-name] [stream-name] [count] [timeout]
+$ java -jar -noverify rtspbee.jar [red5pro-server-IP] [port] [app-name] [stream-name] [count] [timeout]
 ```
 
 ### Options
@@ -56,8 +56,8 @@ The amount of time to subscribe to stream. _The actual subscription time may dif
 
 #### Example
 
-```ssh
-java -jar -noverify rtspbee.jar xxx.xxx.xxx.xxx 1935 live mystream 100 60
+```sh
+java -jar -noverify rtspbee.jar xxx.xxx.xxx.xxx 8554 live mystream 100 60
 ```
 
 This will run an attack with `100` stingers (a.k.a, subscription streams) for `60` seconds each, consuming the `mystream` stream at `rtmp://xxx.xxx.xxx.xxx/1935`.
@@ -65,7 +65,7 @@ This will run an attack with `100` stingers (a.k.a, subscription streams) for `6
 ## Stream Manager Subscription
 
 ```sh
-$ java -jar rtspbee.jar [stream-manager-API-request] [port] [count] [timeout]
+$ java -jar -noverify rtspbee.jar [stream-manager-API-request] [port] [count] [timeout]
 ```
 
 ### Options
@@ -84,8 +84,8 @@ The amount of time to subscribe to stream. _The actual subscription time may dif
 
 #### Example
 
-```ssh
-$ java -jar -noverify rtspbee.jar "http://xxx.xxx.xxx.xxx:5080/streammanager/api/2.0/event/live/mystream?action=subscribe" 1935 100 60
+```sh
+$ java -jar -noverify rtspbee.jar "http://xxx.xxx.xxx.xxx:5080/streammanager/api/2.0/event/live/mystream?action=subscribe" 8554 100 60
 ```
 
 This will run an attack with `100` stingers (a.k.a, subscription streams) for `60` seconds each, consuming the `mystream` stream at the Edge server address returned from the Stream Manager API call to `http://xxx.xxx.xxx.xxx:5080/streammanager/api/2.0/event/live/mystream?action=subscribe`.
