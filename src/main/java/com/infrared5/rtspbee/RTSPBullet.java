@@ -257,6 +257,7 @@ public class RTSPBullet implements Runnable {
               System.out.printf("Successful subscription of bullet, disposing: bullet #%d\n", order);
               if (completed.compareAndSet(false, true)) {
               	if (completeHandler != null) {
+              		safeClose();
               		completeHandler.OnBulletComplete();
                 }
               }
