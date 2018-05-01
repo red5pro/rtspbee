@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.infrared5</groupId>
     <artifactId>rtspbee</artifactId>
-    <version>2.1.0-RELEASE</version>
+    <version>4.0.0-RELEASE</version>
     <packaging>jar</packaging>
     <name>rtspbee</name>
     <url>https://github.com/infrared5/rtspbee</url>

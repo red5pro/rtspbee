@@ -483,7 +483,7 @@ public class RTSPBullet implements Runnable {
       System.out.println("---/ general error ---");
       dostreamError();
     } finally {
-    	System.out.println("--- /finally ---");
+      System.out.println("--- /finally ---");
       safeClose();
     }
   }
