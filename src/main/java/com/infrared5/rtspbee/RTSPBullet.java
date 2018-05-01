@@ -97,6 +97,8 @@ public class RTSPBullet implements Runnable {
   public AtomicBoolean completed = new AtomicBoolean(false);
   volatile boolean connectionException;
   private Future<?> future;
+  
+  private boolean requiresVideoSetup = true;
 
 
   private String formUri() {
@@ -140,7 +142,6 @@ public class RTSPBullet implements Runnable {
     String lines = "";
 
     while ((k = requestSocket.getInputStream().read()) != -1) {
-
       lines += String.valueOf((char) k);
       if (lines.indexOf("\n") > -1) {
 
@@ -205,10 +206,12 @@ public class RTSPBullet implements Runnable {
       
       System.out.println("Bullet #" + this.order + ", Parsing Description.");
       try{
-//        System.out.println("parsing description...");
+        System.out.println("parsing description...");
         parseDescription();
         setupAudio();
-        setupVideo();
+        if (this.requiresVideoSetup) {
+        	setupVideo();
+        }
       }
       catch(Exception e){
         System.out.println("parsing description error...");
@@ -228,15 +231,12 @@ public class RTSPBullet implements Runnable {
       int k = 0;
       String lines = "";
       try{
-//        System.out.println("reading socket input...");
-        
         while ((k = requestSocket.getInputStream().read()) != -1) {
           lines += String.valueOf((char) k);
           if (lines.indexOf("\n") > -1) {
             lines = lines.trim();
-            //System.out.println(lines);
             if (lines.length() == 0) {
-//              System.out.println("End of header, begin stream.");
+              System.out.println("End of header, begin stream.");
               break;
             }
             lines = "";
@@ -267,7 +267,7 @@ public class RTSPBullet implements Runnable {
       mustEnd = true;
       int lengthToRead = 0;// incoming packet length.
       while (doRun && (k = requestSocket.getInputStream().read()) != -1) {
-        //System.out.println("doRun run.");
+//        System.out.println("doRun run.");
         //isPlaying=true;
         if (k == 36) {
 
@@ -645,11 +645,20 @@ public class RTSPBullet implements Runnable {
       }
     }
 
+//    System.out.println("----- propsets ----");
+//    System.out.println(propsets);
+//    System.out.println("----- /propsets ----");
     String splits[] = propsets.split("(,)");
     // sps
     part1 = Base64.decodeBase64(splits[0].trim().getBytes());
-    // pps
-    part2 = Base64.decodeBase64(splits[1].trim().getBytes());
+    if (splits.length > 1) {
+    	// pps
+    	part2 = Base64.decodeBase64(splits[1].trim().getBytes());
+    }
+    else {
+    	// An empty propset means it is audio only.
+    	requiresVideoSetup = false;
+    }
 
   }
 
