@@ -141,12 +141,8 @@ public class RTSPBullet implements Runnable {
     int k = 0;
     String lines = "";
 
-    System.out.println("---- setupAudio:lines ----");
     while ((k = requestSocket.getInputStream().read()) != -1) {
-      System.out.println("READING");
       lines += String.valueOf((char) k);
-      System.out.println("READING");
-      System.out.println(lines);
       if (lines.indexOf("\n") > -1) {
 
         lines = lines.trim();
@@ -160,8 +156,6 @@ public class RTSPBullet implements Runnable {
       }
 
     }
-    System.out.println(lines);
-    System.out.println("---- /setupAudio:lines ----");
   }
 
   private synchronized void safeClose(){
@@ -237,14 +231,10 @@ public class RTSPBullet implements Runnable {
       int k = 0;
       String lines = "";
       try{
-        System.out.println("reading socket input...");
         while ((k = requestSocket.getInputStream().read()) != -1) {
           lines += String.valueOf((char) k);
           if (lines.indexOf("\n") > -1) {
             lines = lines.trim();
-            System.out.println("---- lines ----");
-            System.out.println(lines);
-            System.out.println("---- /lines ----");
             if (lines.length() == 0) {
               System.out.println("End of header, begin stream.");
               break;
@@ -277,7 +267,7 @@ public class RTSPBullet implements Runnable {
       mustEnd = true;
       int lengthToRead = 0;// incoming packet length.
       while (doRun && (k = requestSocket.getInputStream().read()) != -1) {
-        System.out.println("doRun run.");
+//        System.out.println("doRun run.");
         //isPlaying=true;
         if (k == 36) {
 
@@ -655,9 +645,9 @@ public class RTSPBullet implements Runnable {
       }
     }
 
-    System.out.println("----- propsets ----");
-    System.out.println(propsets);
-    System.out.println("----- /propsets ----");
+//    System.out.println("----- propsets ----");
+//    System.out.println(propsets);
+//    System.out.println("----- /propsets ----");
     String splits[] = propsets.split("(,)");
     // sps
     part1 = Base64.decodeBase64(splits[0].trim().getBytes());
@@ -682,10 +672,10 @@ public class RTSPBullet implements Runnable {
     int idx = s.indexOf(":");
     // end of header?
 
-    System.out.println("parseHeader: " + s);
-    System.out.println("--- headers ---");
-    System.out.println(headers);
-    System.out.println("--- /headers ---");
+//    System.out.println("parseHeader: " + s);
+//    System.out.println("--- headers ---");
+//    System.out.println(headers);
+//    System.out.println("--- /headers ---");
     if (idx < 0 && headers.get("Content-Length") != null) {
       bodyCounter = Integer.valueOf(headers.get("Content-Length"));
       state = 2;
