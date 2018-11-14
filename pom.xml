@@ -10,7 +10,7 @@
     <description>RTSPBee</description>
     <properties>
         <iharder-base64.version>2.3.9</iharder-base64.version>
-        <mp3agic.version>0.8.5</mp3agic.version>
+        <mp3agic.version>0.9.1</mp3agic.version>
         <jetm.version>1.2.3</jetm.version>
         <el.version>2.2</el.version>
         <javaee.version>7.0</javaee.version>
@@ -20,10 +20,10 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.build.timestamp.format>MM.dd.yyyy HH:mm</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
-        <red5.version>1.0.10-M4</red5.version>
-        <red5pro.version>4.2.1.185-RELEASE</red5pro.version>
-        <red5-websocket.version>1.13</red5-websocket.version>
-        <mina.version>2.0.14</mina.version>
+        <red5.version>1.0.10-M9</red5.version>
+        <red5pro.version>5.2.3.290-RELEASE</red5pro.version>
+        <red5-websocket.version>1.16.14</red5-websocket.version>
+        <mina.version>2.0.19</mina.version>
         <spring.version>4.3.2.RELEASE</spring.version>
         <commons-codec.version>1.10</commons-codec.version>
         <commons-exec.version>1.3</commons-exec.version>
@@ -113,6 +113,11 @@
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.red5pro</groupId>
+            <artifactId>red5pro-rtsp-plugin</artifactId>
+            <version>${red5pro.version}</version>
         </dependency>
         <dependency>
             <groupId>org.red5</groupId>
@@ -209,7 +214,7 @@
         <dependency>
             <groupId>org.easymock</groupId>
             <artifactId>easymock</artifactId>
-            <version>3.4</version>
+            <version>4.0.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
