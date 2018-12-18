@@ -13,6 +13,12 @@ The RTSP Bee is a java program that runs a subscription "attack" on a server. On
 
 # Building
 
+First run the `setup`:
+
+```sh
+./setup.sh
+```
+
 ## Maven
 
 Creates an executable jar with all the needed dependencies (~26Mb)
