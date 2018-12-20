@@ -19,6 +19,8 @@ import com.google.gson.Gson;
 
 public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
 
+	private static String VERSION = "4.2.1";
+	
     // instance a scheduled executor, using a core size based on cpus
     private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors() * 8);
 
@@ -110,10 +112,11 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
         System.out.printf("Received Streaming Endpoint: %s.\n", endpoint);
         
         SubscriberEndpoint json = new Gson().fromJson(endpoint, SubscriberEndpoint.class);
+        String scope = json.getScope();
         this.url = json.getServerAddress();
         this.port = this.port == 0 ? 8554 : this.port;
         this.streamName = json.getName();
-        this.application = json.getScope().substring(1, json.getScope().length());
+        this.application = scope.charAt(0) == '/' ? scope.substring(1, scope.length()) : scope;
         
         System.out.printf("url: " + this.url + ", port: " + this.port + ", context: " + this.application + ", name " + this.streamName + ".\n");
         
@@ -247,6 +250,7 @@ public class Red5Bee implements IBulletCompleteHandler, IBulletFailureHandler {
      * @throws InterruptedException
      */
     public static void main(String[] args) throws InterruptedException {
+    	System.out.printf("Running RTSPBees %s.\n", VERSION);
         System.out.printf("Number of arguments: %d.\n", args.length);
         // app args
         String url;
