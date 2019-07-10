@@ -66,7 +66,7 @@ The amount of time to subscribe to stream. _The actual subscription time may dif
 java -jar -noverify rtspbee.jar xxx.xxx.xxx.xxx 8554 live mystream 100 60
 ```
 
-This will run an attack with `100` stingers (a.k.a, subscription streams) for `60` seconds each, consuming the `mystream` stream at `rtmp://xxx.xxx.xxx.xxx/1935`.
+This will run an attack with `100` stingers (a.k.a, subscription streams) for `60` seconds each, consuming the `mystream` stream at `rtsp://xxx.xxx.xxx.xxx:8554`.
 
 ## Stream Manager Subscription
 
